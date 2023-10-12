@@ -3,12 +3,57 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useEffect, useState } from "react";
 import Feature from "../componets/Feature";
 import { dummyMessage } from "../constants";
+import Voice from "@react-native-voice/voice";
+
 export default function HomeScreen() {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(dummyMessage);
   const [isRecording, setIsRecording] = useState(false);
   const [speaking, setSpeaking] = useState(true);
+  const [grant, setGrant] = useState(false);
+
+  const speechStartHandler = (e) => {
+    console.log("speech started");
+  };
+
+  const speechEndHandler = (e) => {
+    setIsRecording(false);
+    console.log("speech recorded");
+  };
+
+  const speechResultsHandler = (e) => {
+    console.log("voice event:", e);
+  };
+  const speechErrorHandler = (e) => {
+    console.log("error event:", e);
+  };
+
+  const startRecording = async () => {
+    console.log("HI");
+    try {
+      await Voice.start("en-GB");
+      setIsRecording(true);
+    } catch (err) {
+      console.log("Error: ", err.message);
+    }
+  };
+
+  const stopRecording = async () => {
+    try {
+      await Voice.stop();
+      setIsRecording(false);
+    } catch (err) {
+      console.log(err.message);
+    }
+  };
   useEffect(() => {
-    setMessages(dummyMessage);
+    Voice.onSpeechStart = speechStartHandler;
+    Voice.onSpeechEnd = speechEndHandler;
+    Voice.onSpeechResults = speechResultsHandler;
+    Voice.onSpeechError = speechErrorHandler;
+
+    return () => {
+      Voice.destroy().then(Voice.removeAllListeners);
+    };
   }, []);
   return (
     <SafeAreaView className="flex-1 bg-neutral-950 px-4 py-8 justify-between">
@@ -92,11 +137,13 @@ export default function HomeScreen() {
 
       {/*STOP PLAYING*/}
       <View className="flex-row justify-center items-center w-full">
-        {messages.length > 0 && speaking && (
+        {messages.length > 0 && isRecording && (
           <View className="w-1/3">
             <Pressable
               className="mt-8 flex-row justify-start"
-              onPress={() => setSpeaking(!speaking)}
+              onPress={
+                stopRecording
+              }
             >
               <View className="rounded-lg bg-red-400 p-1 px-4">
                 <Text
@@ -112,7 +159,9 @@ export default function HomeScreen() {
         {/*START RECORDING*/}
         <Pressable
           className="flex-row mt-8 w-1/3 justify-center"
-          onPress={() => setIsRecording(!isRecording)}
+          onPress={
+            startRecording
+          }
         >
           {isRecording ? (
             <View className="rounded-full overflow-hidden border-4 border-[#b9b7dc]">
